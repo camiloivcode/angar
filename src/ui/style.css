@@ -1,0 +1,205 @@
+/* Interfaz de AtlantIA: clara, redondeada y con pocos elementos (estilo Horizon). */
+:root {
+  color-scheme: light;
+  --bg: #eef3ec;
+  --surface: rgba(255, 255, 255, .94);
+  --solid: #ffffff;
+  --ink: #17301f;
+  --ink-soft: #5b6b60;
+  --line: rgba(23, 48, 31, .1);
+  --chip: #eef3ec;
+  --accent: #2f9e2f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3f4da;
+  --shadow: 0 8px 28px rgba(23, 48, 31, .18);
+  --shadow-sm: 0 3px 12px rgba(23, 48, 31, .14);
+  --radius: 22px;
+  --font: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --dock-space: calc(92px + var(--safe-bottom));
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 14px/1.4 var(--font); }
+button, input { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; touch-action: manipulation; }
+button:disabled { opacity: .45; cursor: default; }
+p, h1, h2 { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.hidden, [hidden] { display: none !important; }
+kbd { font: 700 11px/1 ui-monospace, Consolas, monospace; padding: 3px 6px; border-radius: 6px; background: var(--chip); border: 1px solid var(--line); border-bottom-width: 2px; color: var(--ink-soft); }
+svg.lucide, .lucide { width: 20px; height: 20px; stroke-width: 2.4; flex-shrink: 0; }
+
+#app { position: relative; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
+#canvas-container { position: absolute; inset: 0; z-index: 1; }
+
+/* Piezas flotantes: misma superficie, sombra y animación de entrada */
+.brand-pill, .compass-widget, .dock, .popover, .card, .pedestrian-pill, .first-hint, .pad-toast, .tp-menu, .pedestrian-help, .walk-btn {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+/* Marca y brújula */
+.brand-pill { position: absolute; top: 16px; left: 16px; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 7px 18px 7px 7px; border-radius: 999px; }
+.brand-logo { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 900; font-size: 18px; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand-text strong { font-size: 16px; font-weight: 800; }
+.brand-text span { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--ink-soft); }
+
+.compass-widget { position: absolute; top: 16px; right: 16px; z-index: 20; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; }
+.compass-needle { position: absolute; width: 4px; height: 26px; transform-origin: center; }
+.compass-needle::before, .compass-needle::after { content: ''; position: absolute; left: 0; border-left: 2px solid transparent; border-right: 2px solid transparent; }
+.compass-needle::before { top: 0; border-bottom: 13px solid var(--accent); }
+.compass-needle::after { bottom: 0; border-top: 13px solid #b9c4bb; }
+.compass-label { position: absolute; font-size: 8px; font-weight: 800; color: var(--ink-soft); }
+.compass-label.north { top: 3px; color: var(--accent); }
+.compass-label.south { bottom: 3px; }
+.compass-label.east { right: 5px; }
+.compass-label.west { left: 5px; }
+
+/* Dock */
+.dock { position: absolute; left: 50%; bottom: calc(16px + var(--safe-bottom)); transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 999px; max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; }
+.dock::-webkit-scrollbar { display: none; }
+.dock-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 62px; height: 56px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); font-size: 11px; font-weight: 700; transition: background-color .15s, color .15s, transform .15s; }
+.dock-btn:hover { background: var(--accent-soft); color: var(--ink); }
+.dock-btn:active { transform: scale(.95); }
+.dock-btn.active, .dock-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.dock-btn.vr-unsupported { display: none; }
+.dock-sep { width: 1px; height: 28px; margin: 0 4px; background: var(--line); flex-shrink: 0; }
+
+/* Popovers (pisos y ajustes) */
+.popover { position: fixed; inset: auto 0 var(--dock-space) 0; margin: 0 auto; width: min(340px, calc(100vw - 24px)); padding: 16px; border: 0; border-radius: var(--radius); color: var(--ink); overflow: visible; }
+.popover:popover-open { animation: rise .18s ease-out; }
+.popover-title { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+.popover-hint { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin: 14px 0 6px; }
+.segmented { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--chip); }
+.seg { flex: 1; min-height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; font-weight: 700; color: var(--ink-soft); transition: background-color .15s, color .15s; }
+.seg:hover { color: var(--ink); background: rgba(255, 255, 255, .7); }
+.seg.active { background: var(--accent); color: var(--accent-ink); }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 46px; font-weight: 700; cursor: pointer; }
+.switch { appearance: none; position: relative; flex-shrink: 0; width: 46px; height: 28px; margin: 0; border-radius: 999px; background: #cdd7cf; transition: background-color .18s; cursor: pointer; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); transition: transform .18s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(18px); }
+
+/* Buscador */
+.search-dialog { width: min(580px, calc(100vw - 24px)); margin: 11vh auto auto; padding: 0; border: 0; border-radius: var(--radius); background: var(--solid); color: var(--ink); box-shadow: var(--shadow); overflow: hidden; }
+.search-dialog[open] { animation: rise .18s ease-out; }
+.search-dialog::backdrop { background: rgba(23, 48, 31, .35); backdrop-filter: blur(3px); }
+.search-box { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.search-box .lucide { color: var(--ink-soft); }
+.search-box input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 17px; }
+.search-results { max-height: min(60vh, 440px); overflow-y: auto; padding: 8px; }
+.result-group { padding: 12px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.result { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; cursor: pointer; }
+.result:hover, .result.active { background: var(--accent-soft); }
+.result-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--chip); color: var(--accent); font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.result.active .result-icon { background: var(--accent); color: var(--accent-ink); }
+.result-main { display: flex; flex-direction: column; min-width: 0; }
+.result-title { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-sub { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-empty { padding: 28px 16px; text-align: center; color: var(--ink-soft); }
+
+/* Tarjeta del espacio / recorrido guiado */
+.card { position: absolute; right: 16px; bottom: calc(16px + var(--safe-bottom)); z-index: 28; width: min(340px, calc(100vw - 32px)); padding: 18px 18px 16px; border-radius: var(--radius); animation: rise .2s ease-out; }
+.card-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--chip); color: var(--ink-soft); }
+.card-close:hover { background: var(--accent-soft); color: var(--ink); }
+.card-tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); padding-right: 40px; }
+.card-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin: 4px 0 6px; padding-right: 36px; }
+.card-desc { font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+.card-desc:empty { display: none; }
+.card-actions { margin-top: 14px; }
+.card-actions:empty { display: none; }
+.tour-actions { display: flex; gap: 8px; }
+.tour-actions .btn-primary { flex: 1; }
+.btn-primary, .btn-soft { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; font-weight: 800; transition: background-color .15s, transform .15s; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover:not(:disabled) { background: #278a27; }
+.btn-soft { background: var(--chip); color: var(--ink); }
+.btn-soft:hover:not(:disabled) { background: var(--accent-soft); }
+.btn-primary:active, .btn-soft:active { transform: scale(.97); }
+#btn-teleport-space { width: 100%; }
+
+/* Recorrido a pie */
+/* sin transform: sus hijos (ayuda, pad) son fixed y dependen de ello */
+.pedestrian-hud { position: absolute; top: 16px; left: 0; right: 0; z-index: 29; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; animation: fade .25s ease-out; }
+.pedestrian-hud > * { pointer-events: auto; }
+.pedestrian-pill { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 16px; border-radius: 999px; }
+.pedestrian-badge { display: flex; align-items: center; gap: 8px; margin-right: 6px; font-weight: 800; white-space: nowrap; }
+.pedestrian-hud.flying .pedestrian-badge { color: #1c7bb5; }
+.pulse-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); animation: pulse 1.8s infinite ease-out; }
+.chip { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 999px; background: var(--chip); font-weight: 700; white-space: nowrap; }
+.chip:hover { background: var(--accent-soft); }
+.chip .lucide { width: 18px; height: 18px; }
+.chip[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); }
+.tp-menu { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 4px; padding: 8px; max-width: calc(100vw - 24px); border-radius: var(--radius); }
+.tp-menu button { width: 100%; padding: 11px 14px; border: 0; border-radius: 14px; background: transparent; text-align: left; font-weight: 700; }
+.tp-menu button:hover, .tp-menu button.focused { background: var(--accent-soft); }
+.pedestrian-help { position: fixed; left: 50%; bottom: var(--dock-space); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); padding: 14px 18px; border-radius: var(--radius); }
+.help-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 20px; font-size: 13px; color: var(--ink-soft); }
+.help-list li { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.help-keys { display: inline-flex; gap: 3px; }
+.fly-only { display: none !important; }
+.pedestrian-hud.flying .fly-only { display: flex !important; }
+.pedestrian-hud[data-input="keyboard"] .help-pad, .pedestrian-hud[data-input="pad"] .help-keyboard { display: none; }
+.walk-pad { position: fixed; right: 16px; bottom: var(--dock-space); display: none; flex-direction: column; gap: 8px; }
+.walk-btn { display: grid; place-items: center; gap: 0; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; font-size: 10px; font-weight: 800; color: var(--ink-soft); }
+.walk-btn:active { background: var(--accent-soft); }
+.pad-toast { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 30; padding: 10px 20px; border-radius: 999px; font-weight: 700; animation: fade .25s ease-out; }
+
+/* Ayuda de la primera visita */
+.first-hint { position: fixed; left: 50%; bottom: var(--dock-space); transform: translateX(-50%); z-index: 27; width: max-content; max-width: calc(100vw - 24px); padding: 11px 20px; border-radius: 999px; font-size: 13px; color: var(--ink-soft); text-align: center; animation: rise .3s ease-out; }
+.first-hint strong { color: var(--ink); }
+.hint-touch { display: none; }
+
+/* Carga y error */
+.loading-state, .render-error { position: absolute; inset: 0; z-index: 200; display: grid; place-items: center; padding: 24px; background: var(--bg); }
+.render-error { z-index: 210; }
+.loading-card { max-width: 380px; text-align: center; }
+.loading-card h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+.loading-card p { color: var(--ink-soft); line-height: 1.6; }
+.loading-card .btn-primary { margin-top: 22px; }
+.loading-spinner { width: 44px; height: 44px; margin: 0 auto 24px; border: 4px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+
+/* Etiquetas 3D */
+.hotspot-pin { display: flex; align-items: center; gap: 8px; padding: 5px; border: 0; background: transparent; cursor: pointer; }
+.pin-beacon { position: relative; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px #fff; flex-shrink: 0; }
+.pin-beacon::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accent); animation: beacon 3s infinite ease-out; }
+.pin-card { display: flex; flex-direction: column; gap: 1px; padding: 6px 14px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-sm); white-space: nowrap; text-align: left; transition: background-color .15s; }
+.hotspot-pin:hover .pin-card { background: var(--accent-soft); }
+.pin-badge { font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.pin-title { font-size: 12px; font-weight: 800; color: var(--ink); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 158, 47, .5); } 100% { box-shadow: 0 0 0 10px rgba(47, 158, 47, 0); } }
+@keyframes beacon { 0% { transform: scale(.7); opacity: .8; } 100% { transform: scale(1.8); opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Pantallas táctiles y estrechas */
+@media (pointer: coarse), (max-width: 820px) {
+  .walk-pad { display: flex; }
+  .hint-mouse { display: none; }
+  .hint-touch { display: inline; }
+  .pedestrian-pill kbd, .help-keyboard, .help-pad { display: none !important; }
+  .pedestrian-help .help-list:empty { display: none; }
+}
+@media (max-width: 1100px) {
+  .card { left: 12px; right: 12px; bottom: var(--dock-space); width: auto; max-width: 480px; margin: 0 auto; }
+}
+@media (max-width: 640px) {
+  .brand-text span { display: none; }
+  .brand-pill { padding-right: 14px; }
+  .pedestrian-hud { top: 70px; }
+  .pad-toast { top: 126px; }
+  .dock-btn { min-width: 46px; padding: 0 6px; }
+  .dock-btn span { display: none; }
+  .dock-btn { height: 48px; }
+  .dock-sep { margin: 0 2px; }
+  :root { --dock-space: calc(80px + var(--safe-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

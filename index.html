@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f8f2">
+  <meta name="description" content="Visor 3D del hangar y el predio del Centro de Instrucción de Aeronáutica Civil del SENA Atlántico: recórrelo a pie, en realidad virtual o como maqueta.">
+  <title>CIAC Atlántico · Visor 3D</title>
+  <link rel="stylesheet" href="/src/ui/style.css">
+</head>
+<body>
+  <script>/* Solo pruebas en localhost con pestaña oculta: ?raf-timer reemplaza requestAnimationFrame por un reloj en un worker (los temporizadores de una pestaña oculta se limitan). */
+    if (location.hostname === "localhost" && /[?&]raf-timer/.test(location.search)) {
+      const w = new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 100)"]))), cbs = [];
+      w.onmessage = () => { const t = performance.now(); cbs.splice(0).forEach(cb => cb(t)); };
+      window.requestAnimationFrame = cb => cbs.push(cb); Object.defineProperty(document, "hidden", { get: () => false });
+    }</script>
+  <div id="app">
+    <div id="canvas-container" aria-label="Modelo tridimensional del hangar y el predio del CIAC"></div>
+
+    <!-- Marca y brújula -->
+    <header class="brand-pill">
+      <span class="brand-logo" aria-hidden="true">✈</span>
+      <span class="brand-text"><strong>CIAC Atlántico</strong><span>SENA · RAC 147</span></span>
+    </header>
+    <div class="compass-widget" id="compass-widget" role="img" aria-label="Brújula de orientación del predio"><div class="compass-needle"></div><div class="compass-label north">N</div><div class="compass-label south">S</div><div class="compass-label east">E</div><div class="compass-label west">O</div></div>
+
+    <!-- Dock de controles -->
+    <nav class="dock" aria-label="Controles del visor">
+      <button type="button" id="btn-reset-cam" class="dock-btn" title="Vista general" aria-label="Vista general"><i data-lucide="house"></i><span>Inicio</span></button>
+      <button type="button" id="btn-pedestrian-mode" class="dock-btn" title="Recorrer a pie (Start en el mando)" aria-label="Recorrer a pie" aria-pressed="false"><i data-lucide="footprints"></i><span>A pie</span></button>
+      <button type="button" id="btn-tour" class="dock-btn" title="Recorrido guiado" aria-label="Recorrido guiado" aria-pressed="false"><i data-lucide="route"></i><span>Recorrido</span></button>
+      <button type="button" id="btn-demo" class="dock-btn" title="Demostración de maniobra" aria-label="Demostración de maniobra" aria-pressed="false"><i data-lucide="play"></i><span>Demo</span></button>
+      <button type="button" id="btn-floors" class="dock-btn" title="Elegir piso" aria-label="Pisos" popovertarget="pop-floors"><i data-lucide="layers"></i><span>Pisos</span></button>
+      <button type="button" id="btn-search" class="dock-btn" title="Buscar (Ctrl+K)" aria-label="Buscar" aria-haspopup="dialog"><i data-lucide="search"></i><span>Buscar</span></button>
+      <span class="dock-sep" aria-hidden="true"></span>
+      <button type="button" id="btn-vr-mode" class="dock-btn vr-btn" title="Realidad virtual" aria-label="Realidad virtual"><i data-lucide="glasses"></i><span id="vr-btn-label">VR</span></button>
+      <button type="button" id="btn-mr-mode" class="dock-btn vr-btn" title="Maqueta en realidad mixta" aria-label="Maqueta en realidad mixta"><i data-lucide="box"></i><span id="mr-btn-label">Maqueta</span></button>
+      <button type="button" id="btn-settings" class="dock-btn" title="Ajustes" aria-label="Ajustes" popovertarget="pop-settings"><i data-lucide="settings-2"></i><span>Ajustes</span></button>
+    </nav>
+
+    <!-- Pisos -->
+    <div id="pop-floors" class="popover" popover aria-label="Pisos">
+      <p class="popover-title">Pisos</p>
+      <div class="segmented" role="group" aria-label="Vista del edificio">
+        <button type="button" class="floor-btn seg active" data-floor="all" aria-pressed="true">Todo</button>
+        <button type="button" class="floor-btn seg" data-floor="exploded" aria-pressed="false">Explotada</button>
+      </div>
+      <p class="popover-hint">Ver hasta el piso…</p>
+      <div class="segmented" role="group" aria-label="Ver hasta el piso">
+        <button type="button" class="floor-btn seg" data-floor="1" aria-pressed="false">1</button>
+        <button type="button" class="floor-btn seg" data-floor="2" aria-pressed="false">2</button>
+      </div>
+    </div>
+
+    <!-- Ajustes -->
+    <div id="pop-settings" class="popover" popover aria-label="Ajustes">
+      <p class="popover-title">Ajustes</p>
+      <label class="switch-row"><span>Rotación automática</span><input type="checkbox" id="check-auto-rotate" class="switch"></label>
+      <label class="switch-row"><span>Vegetación</span><input type="checkbox" id="check-trees" class="switch" checked></label>
+      <label class="switch-row"><span>Sombras</span><input type="checkbox" id="check-shadows" class="switch" checked></label>
+      <label class="switch-row"><span>Etiquetas</span><input type="checkbox" id="check-hotspots" class="switch" checked></label>
+      <div class="switch-row"><span>Aeronaves</span><span class="segmented"><button type="button" id="btn-sacar-todas" class="seg">Sacar todas</button><button type="button" id="btn-guardar-todas" class="seg">Guardar</button></span></div>
+      <label class="switch-row"><span>Techo del hangar</span><input type="checkbox" id="check-hangar-roof" class="switch"></label>
+      <label class="switch-row"><span>Cotas</span><input type="checkbox" id="check-cotas" class="switch"></label>
+      <label class="switch-row"><span>Franjas SMS</span><input type="checkbox" id="check-sms" class="switch" checked></label>
+    </div>
+
+    <!-- Buscador: vistas, lugares y salones -->
+    <dialog id="search-dialog" class="search-dialog" aria-label="Buscar en el predio">
+      <div class="search-box">
+        <i data-lucide="search" aria-hidden="true"></i>
+        <input id="search-input" type="search" placeholder="Busca una aeronave, un recinto, una vista o un lugar…" autocomplete="off" spellcheck="false" aria-label="Buscar" aria-controls="search-results">
+        <kbd>Esc</kbd>
+      </div>
+      <ul id="search-results" class="search-results" role="listbox" aria-label="Resultados"></ul>
+    </dialog>
+
+    <!-- Tarjeta del espacio seleccionado y del recorrido guiado -->
+    <section id="inspector-card" class="card hidden" aria-labelledby="inspector-title" aria-live="polite">
+      <button type="button" id="btn-close-inspector" class="card-close" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <p class="card-tag" id="inspector-tag"></p>
+      <h2 class="card-title" id="inspector-title"></h2>
+      <p class="card-desc" id="inspector-desc"></p>
+      <div class="card-actions" id="inspector-actions">
+        <div class="tour-actions hidden" id="tour-actions">
+          <button type="button" id="btn-tour-prev" class="btn-soft">Anterior</button>
+          <button type="button" id="btn-tour-next" class="btn-primary">Siguiente</button>
+          <button type="button" id="btn-tour-end" class="btn-soft">Terminar</button>
+        </div>
+        <button type="button" id="btn-maniobra" class="btn-soft hidden"><i data-lucide="plane"></i><span>Sacar al exterior</span></button>
+        <button type="button" id="btn-teleport-space" class="btn-primary"><i data-lucide="footprints"></i><span>Entrar a pie</span></button>
+      </div>
+    </section>
+
+    <!-- Recorrido a pie -->
+    <div id="pedestrian-hud" class="pedestrian-hud hidden" data-input="keyboard" role="region" aria-label="Recorrido a pie">
+      <div class="pedestrian-pill">
+        <span class="pedestrian-badge"><span class="pulse-dot" aria-hidden="true"></span><span id="pedestrian-mode-label">A pie</span></span>
+        <button type="button" id="btn-tp-menu" class="chip" aria-haspopup="true" aria-expanded="false" aria-controls="tp-menu"><i data-lucide="map-pin"></i><span>Ir a…</span><kbd>T</kbd></button>
+        <button type="button" id="btn-help-toggle" class="chip" aria-expanded="false" aria-controls="pedestrian-help"><i data-lucide="circle-help"></i><span>Ayuda</span></button>
+        <button type="button" id="btn-exit-pedestrian" class="chip" aria-label="Salir del recorrido y volver a la vista aérea"><i data-lucide="orbit"></i><span>Vista aérea</span><kbd>Esc</kbd></button>
+      </div>
+      <ul id="tp-menu" class="tp-menu hidden" role="menu" aria-label="Ir a un lugar"></ul>
+      <div class="walk-pad">
+        <button type="button" id="btn-sv-forward" class="walk-btn" aria-label="Avanzar"><i data-lucide="chevron-up"></i><span>Avanzar</span></button>
+        <button type="button" id="btn-sv-backward" class="walk-btn" aria-label="Retroceder"><i data-lucide="chevron-down"></i><span>Retroceder</span></button>
+      </div>
+      <div class="pedestrian-help hidden" id="pedestrian-help">
+        <ul class="help-list help-keyboard">
+          <li><span class="help-keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span> Moverte</li>
+          <li><span class="help-keys"><kbd>Shift</kbd></span> Correr</li>
+          <li><span class="help-keys"><kbd>Q</kbd><kbd>E</kbd></span> Girar</li>
+          <li><span class="help-keys"><kbd>Arrastrar</kbd></span> Mirar</li>
+          <li><span class="help-keys"><kbd>Clic</kbd></span> Ir a ese punto</li>
+          <li><span class="help-keys"><kbd>T</kbd></span> Ir a un lugar</li>
+          <li><span class="help-keys"><kbd>Espacio</kbd>×2</span> Volar</li>
+          <li class="fly-only"><span class="help-keys"><kbd>Espacio</kbd><kbd>Shift</kbd></span> Subir / bajar</li>
+        </ul>
+        <ul class="help-list help-pad">
+          <li><span class="help-keys"><kbd>Stick izq.</kbd></span> Moverte</li>
+          <li><span class="help-keys"><kbd>Stick der.</kbd></span> Mirar</li>
+          <li><span class="help-keys"><kbd>LB</kbd><kbd>RT</kbd></span> Correr</li>
+          <li><span class="help-keys"><kbd>Select</kbd></span> Ir a un lugar</li>
+          <li><span class="help-keys"><kbd>A</kbd>×2</span> Volar</li>
+          <li class="fly-only"><span class="help-keys"><kbd>A</kbd><kbd>X</kbd></span> Subir / bajar</li>
+          <li><span class="help-keys"><kbd>B</kbd></span> Salir</li>
+        </ul>
+      </div>
+    </div>
+    <div id="pad-toast" class="pad-toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- Ayuda de la primera visita -->
+    <div id="first-hint" class="first-hint hidden" role="status">
+      <span class="hint-mouse"><strong>Arrastra</strong> para girar · <strong>rueda</strong> para acercar · <strong>clic</strong> en una aeronave o un recinto para ver su información</span>
+      <span class="hint-touch">Un dedo para girar · dos dedos para acercar · toca una aeronave o un recinto para ver su información</span>
+    </div>
+
+    <div id="loading-state" class="loading-state" role="status" aria-live="polite"><div class="loading-card"><div class="loading-spinner" aria-hidden="true"></div><h2>Preparando el hangar</h2><p id="loading-message">Un momento…</p></div></div>
+    <div id="render-error" class="render-error hidden" role="alert"><div class="loading-card"><h2>No se pudo iniciar la vista</h2><p id="render-error-message">Comprueba que tu navegador admite WebGL y vuelve a intentarlo.</p><button type="button" id="btn-retry" class="btn-primary">Volver a intentar</button></div></div>
+    <noscript><div class="render-error"><div class="loading-card"><h2>Activa JavaScript para explorar el hangar</h2></div></div></noscript>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
